@@ -1,0 +1,383 @@
+﻿@{
+    Layout = null;
+
+    float conf = 0f;
+    if (ViewBag.Confidence != null)
+    {
+        conf = (float)ViewBag.Confidence;
+        if (conf < 0) conf = 0;
+        if (conf > 1) conf = 1;
+    }
+    var confPct = (int)Math.Round(conf * 100);
+
+    string barBg =
+        conf < 0.40f ? "linear-gradient(90deg,#ff4d4d,#ff7a7a)" :
+        conf < 0.70f ? "linear-gradient(90deg,#ffb020,#ff7a00)" :
+                       "linear-gradient(90deg,#22c55e,#16a34a)";
+
+    string badgeBg =
+        conf < 0.40f ? "rgba(255,77,77,.18)" :
+        conf < 0.70f ? "rgba(255,176,32,.18)" :
+                       "rgba(34,197,94,.18)";
+
+    string badgeText =
+        conf < 0.40f ? "#ff7a7a" :
+        conf < 0.70f ? "#ffb020" :
+                       "#22c55e";
+}
+
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yemek Tanıma</title>
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #0b0f16;
+        }
+
+        .page-wrap {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 28px 16px 50px;
+            box-sizing: border-box;
+            /* ✅ koyu arka plan + hafif glow */
+            background: radial-gradient(900px 520px at 50% 0%, rgba(110,80,255,.18), transparent 60%), #0b0f16;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 760px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+            .hero h1 {
+                color: #fff;
+                font-weight: 950;
+                margin: 0;
+                font-size: 30px;
+            }
+
+            .hero p {
+                color: rgba(255,255,255,.65);
+                margin: 10px 0 0;
+                font-size: 14px;
+            }
+
+        .cardx {
+            background: rgba(18,18,18,.78);
+            border: 1px solid rgba(255,255,255,.10);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 18px 55px rgba(0,0,0,.45);
+            backdrop-filter: blur(10px);
+        }
+
+        .glow {
+            position: relative;
+        }
+
+            .glow:before {
+                content: "";
+                position: absolute;
+                inset: -2px;
+                border-radius: 20px;
+                background: linear-gradient(90deg, rgba(60,120,255,.35), rgba(160,80,255,.22), rgba(60,120,255,.35));
+                filter: blur(16px);
+                z-index: -1;
+                opacity: .65;
+            }
+
+        .labelRow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: rgba(255,255,255,.85);
+            font-weight: 850;
+            margin-bottom: 10px;
+        }
+
+        .fileName {
+            color: rgba(255,255,255,.55);
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .fileInput {
+            width: 100%;
+            border-radius: 12px;
+            padding: 10px;
+            background: #0f0f0f;
+            color: #ddd;
+            border: 1px solid rgba(255,255,255,.12);
+            box-sizing: border-box;
+        }
+
+        .btnx {
+            width: 100%;
+            border: 0;
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-weight: 950;
+            color: #fff;
+            background: linear-gradient(90deg, #2f6bff, #7b2cff);
+            transition: transform .12s ease, opacity .12s ease;
+            margin-top: 12px;
+        }
+
+            .btnx:active {
+                transform: scale(.99);
+            }
+
+            .btnx:disabled {
+                opacity: .55;
+                cursor: not-allowed;
+            }
+
+        .hint {
+            margin-top: 10px;
+            color: #8d8d8d;
+            font-size: 12px;
+        }
+
+        .previewBox {
+            margin-top: 14px;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.10);
+            background: rgba(10,10,10,.92);
+        }
+
+        /* ✅ resim ortalı, taşma yok */
+        .previewInner {
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+        .placeholder {
+            text-align: center;
+            color: rgba(255,255,255,.55);
+            padding: 28px;
+        }
+
+            .placeholder .big {
+                font-weight: 950;
+                color: rgba(255,255,255,.78);
+                font-size: 16px;
+                margin-bottom: 6px;
+            }
+
+        #previewImg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 14px;
+            display: none;
+        }
+       
+
+        .result {
+            margin-top: 14px;
+            display: grid;
+            gap: 10px;
+            text-align: center;
+            padding-top: 6px;
+        }
+
+        .resultTitle {
+            color: rgba(255,255,255,.65);
+            font-weight: 900;
+            letter-spacing: .3px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .resultLabel {
+            font-size: 24px;
+            font-weight: 950;
+            color: #fff;
+        }
+
+        .bar {
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.10);
+            overflow: hidden;
+        }
+
+            .bar > div {
+                height: 100%;
+                border-radius: 999px;
+                transition: width .25s ease;
+            }
+
+        .muted {
+            color: rgba(255,255,255,.62);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        /* ✅ Razor için @@keyframes */
+        @@keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spin {
+            animation: spin .8s linear infinite;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            border: 2px solid rgba(255,255,255,.45);
+            border-top-color: #fff;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-wrap">
+        <div class="app">
+
+            <div class="hero">
+                <h1>🍽️ Yemek Tanıma</h1>
+                <p>Bir fotoğraf seç. Önizlemeyi hemen gör. “Tahmin Et” ile modeli çalıştır.</p>
+            </div>
+
+            <div class="cardx glow">
+                <form id="predictForm" asp-action="Index" method="post" enctype="multipart/form-data">
+                    <div class="labelRow">
+                        <span>Fotoğraf yükle</span>
+                        <span id="fileName" class="fileName">Seçilen dosya yok</span>
+                    </div>
+
+                    <input id="imageInput" type="file" name="image" accept="image/*" class="fileInput" />
+
+                    <button id="predictBtn" type="submit" class="btnx" disabled data-text="✨ Tahmin Et">
+                        ✨ Tahmin Et
+                    </button>
+
+                    <div class="hint">
+                        Dosya seçince önizleme gelir. “Tahmin Et” submit edince sonuç çıkar.
+                    </div>
+                </form>
+
+                <div class="previewBox">
+                    <div class="previewInner">
+                        <div id="placeholder" class="placeholder">
+                            <div class="big">Önizleme burada görünecek</div>
+                            <div>JPG / PNG yükleyebilirsin</div>
+                        </div>
+
+                        <img id="previewImg" src="@(ViewBag.ImageDataUrl ?? "")" alt="Önizleme" />
+                    </div>
+                </div>
+
+                @if (ViewBag.Result != null)
+                {
+                    <div class="result">
+                        <div class="resultTitle">Tahmin Sonucu</div>
+                        <div class="resultLabel">@ViewBag.Result</div>
+
+                        <div class="bar">
+                            <div id="barFill" style="width:@confPct%; background:@barBg;"></div>
+                        </div>
+
+                        <div class="muted">
+                            Skor: <strong style="color:#fff;">@string.Format("{0:0.0000}", conf)</strong> (@confPct%)
+                            <span style="margin-left:10px; padding:4px 10px; border-radius:999px; background:@badgeBg; color:@badgeText; font-weight:900; font-size:12px;">
+                                @(conf < 0.40f ? "Düşük" : conf < 0.70f ? "Orta" : "Yüksek")
+                            </span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('predictForm');
+        const input = document.getElementById('imageInput');
+        const img = document.getElementById('previewImg');
+        const placeholder = document.getElementById('placeholder');
+        const btn = document.getElementById('predictBtn');
+        const fileName = document.getElementById('fileName');
+
+        function setButtonState() {
+            const hasFile = input.files && input.files.length > 0;
+            btn.disabled = !hasFile;
+            btn.style.opacity = btn.disabled ? "0.55" : "1";
+            btn.style.cursor = btn.disabled ? "not-allowed" : "pointer";
+            if (!btn.disabled) btn.innerHTML = btn.getAttribute('data-text');
+        }
+
+        // submit sonrası geldiyse (server base64), önizlemeyi göster
+        const serverSrc = img.getAttribute('src');
+        if (serverSrc && serverSrc.trim().length > 0) {
+            img.style.display = 'block';
+            placeholder.style.display = 'none';
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+            btn.innerHTML = btn.getAttribute('data-text');
+        } else {
+            setButtonState();
+        }
+
+        // Dosya seçilince anında önizleme + buton aç
+        input.addEventListener('change', function () {
+            const file = this.files && this.files[0];
+
+            if (!file) {
+                fileName.textContent = "Seçilen dosya yok";
+                img.src = '';
+                img.style.display = 'none';
+                placeholder.style.display = 'block';
+                setButtonState();
+                return;
+            }
+
+            fileName.textContent = file.name;
+            img.src = URL.createObjectURL(file);
+            img.style.display = 'block';
+            placeholder.style.display = 'none';
+            setButtonState();
+        });
+
+        // Submit olunca loading
+        form.addEventListener('submit', function () {
+            const hasFile = input.files && input.files.length > 0;
+            if (!hasFile) return;
+
+            btn.disabled = true;
+            btn.style.opacity = "0.80";
+            btn.style.cursor = "wait";
+            btn.innerHTML = `
+                <span style="display:inline-flex;align-items:center;gap:10px;justify-content:center;">
+                    <span class="spin"></span>
+                    Yükleniyor...
+                </span>`;
+        });
+    </script>
+</body>
+</html>

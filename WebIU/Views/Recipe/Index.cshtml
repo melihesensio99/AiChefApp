@@ -1,0 +1,49 @@
+﻿@{
+    ViewData["Title"] = "Recipe";
+    Layout = "_Layout";
+}
+
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-dark p-3">
+    <div class="card bg-dark text-white shadow-lg rounded-4 border border-white border-opacity-10"
+         style="max-width: 620px; width: 100%;">
+        <div class="card-body p-4 p-md-5">
+
+            <div class="d-flex gap-3 align-items-start mb-3">
+                <div class="rounded-3 border border-white border-opacity-10 px-3 py-2 bg-white bg-opacity-10 fs-4">👨‍🍳</div>
+                <div>
+                    <h1 class="fs-2 fw-bold mb-1">Akıllı Aşçı Yardımcısı</h1>
+                    <p class="text-secondary mb-0 fs-6">Elindeki malzemeleri yaz, sana en uygun tarifi önereyim</p>
+                </div>
+            </div>
+
+            <form asp-action="CreateRecipe" asp-controller="Recipe" method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Malzemeler</label>
+                    <textarea name="ingredients"
+                              class="form-control form-control-lg bg-black bg-opacity-25 text-white border-white border-opacity-25 rounded-4"
+                              rows="4"
+                              placeholder="Örn: patates, soğan, yumurta, peynir...">@ViewBag.Ingredients</textarea>
+                    <small class="text-secondary d-block mt-2">Virgülle ayırabilirsin.</small>
+                </div>
+
+                <button class="btn btn-primary btn-lg w-100 rounded-4" type="submit">
+                    Tarif Öner
+                </button>
+            </form>
+
+            @* ✅ SONUÇ *@
+            @if (ViewBag.Recipe != null)
+            {
+                <div class="mt-4">
+                    <div class="card bg-black bg-opacity-25 border border-white border-opacity-10 rounded-4">
+                        <div class="card-body">
+                            <h5 class="mb-2">Tarif</h5>
+                            <pre class="mb-0 text-white" style="white-space: pre-wrap;">@ViewBag.Recipe</pre>
+                        </div>
+                    </div>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
